@@ -72,3 +72,15 @@ Set-ExecutionPolicy Bypass -Scope Process -Force
 *   `<F12>` – Step Out.
 *   `<leader>b` (Space + `b`) – Toggle Breakpoint.
 *   `<leader>du` (Space + `du`) – Toggle Debugger UI windows.
+
+### Git Aliases
+The global Git configuration includes several powerful aliases:
+*   `git st` – Compact status view.
+*   `git lg` – Pretty graph log view with relative dates and authors.
+*   `git br` – Detailed branch viewer with tracking status.
+*   `git brlog` – Branch activity viewer (relative update dates and subjects).
+*   `git ca` – Commit amend (no-edit).
+*   `git pf` – Safe force push (`--force-with-lease`).
+*   `git unstage` – Unstage staged files.
+*   `git last` – Show a brief one-line summary of the latest commit.
+

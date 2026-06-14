@@ -1,0 +1,101 @@
+[init]
+	defaultBranch = main
+[alias]
+	# Amend the last commit while keeping the existing commit message
+	amend = commit --amend --no-edit
+
+	# Push only if the remote contains all commits known locally
+	pfi = push --force-if-includes
+
+	# List local branches sorted by most recent commit date.
+	# Shows branch name, relative date, author, and latest commit subject.
+	bc = for-each-ref --sort=-committerdate refs/heads/ --format='%(color:yellow)%(refname:short)%0a  %(color:green)(%(committerdate:relative))%(color:reset) by %(authorname)%0a  %(subject)%0a'
+
+	# Pretty graph log with relative dates, author, and refs
+	lg = log --graph --abbrev-commit --decorate --format=format:'%C(bold blue)%h%C(reset) - %C(bold green)(%ar)%C(reset) %C(white)%s%C(reset) %C(dim white)- %an%C(reset)%C(auto)%d%C(reset)'
+
+	# Alternative compact graph view
+	# lg = log --oneline --graph --decorate --all
+
+	# Soft reset: move HEAD while keeping changes staged
+	rs = reset --soft
+
+	# Hard reset: discard working tree and index changes
+	rh = reset --hard
+
+	# Safer force push that refuses to overwrite unexpected remote updates
+	pf = push --force-with-lease
+
+	# Short status with branch information
+	st = status -sb
+
+	# List branches with upstream tracking and latest commit
+	br = branch -vv
+
+	# Unstage files without modifying working tree contents
+	# Usage: git unstage <file>
+	unstage = restore --staged --
+
+	# Show a one-line summary of the latest commit
+	last = show -s --format='%C(auto)%h %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' HEAD
+
+	# Short alias for commit amend without editing message
+	ca = commit --amend --no-edit
+
+	# Branch activity viewer
+	#
+	# Usage:
+	#   git brlog
+	#       Show all local branches sorted by most recent commit.
+	#
+	#   git brlog <N>
+	#       Show only the N most recently updated branches.
+	#
+	#   git brlog "<date>"
+	#       Show branches updated since the specified date.
+	#       Examples:
+	#           git brlog "7 days ago"
+	#           git brlog "2026-05-01"
+	#
+	# Output columns:
+	#   * Current branch marker
+	#   Relative commit age
+	#   Branch name
+	#   Commit SHA
+	#   Latest commit subject
+	brlog = "!f() {\n\
+		if echo \"$1\" | grep -Eq \"^[0-9]+$\"; then\n\
+			count=$1\n\
+			git for-each-ref --count=$count --sort=-committerdate refs/heads/ \\\n\
+			--format=\"%(if)%(HEAD)%(then)%(color:green)* %(else)  %(end)%(color:yellow)%(committerdate:relative)%(color:reset) %(color:cyan)%(refname:short)%(color:reset) %(color:magenta)%(objectname:short)%(color:reset) %(contents:subject)\"\n\
+		elif [ -n \"$1\" ]; then\n\
+			git for-each-ref --sort=-committerdate refs/heads/ \\\n\
+			--format=\"%(committerdate:unix)|%(if)%(HEAD)%(then)%(color:green)* %(else)  %(end)%(color:yellow)%(committerdate:relative)%(color:reset) %(color:cyan)%(refname:short)%(color:reset) %(color:magenta)%(objectname:short)%(color:reset) %(contents:subject)\" |\n\
+			while IFS=\"|\" read ts line; do\n\
+				if [ \"$ts\" -ge \"$(date -d \"$1\" +%s 2>/dev/null)\" ]; then\n\
+					echo \"$line\"\n\
+				fi\n\
+			done\n\
+		else\n\
+			git for-each-ref --sort=-committerdate refs/heads/ \\\n\
+			--format=\"%(if)%(HEAD)%(then)%(color:green)* %(else)  %(end)%(color:yellow)%(committerdate:relative)%(color:reset) %(color:cyan)%(refname:short)%(color:reset) %(color:magenta)%(objectname:short)%(color:reset) %(contents:subject)\"\n\
+		fi\n\
+	}; f"
+[color]
+	ui = always
+[merge]
+	conflictStyle = zdiff3
+[rerere]
+	enabled = true
+[push]
+	autoSetupRemote = true
+	followTags = true
+[diff]
+	algorithm = histogram
+[help]
+	autocorrect = prompt
+[filter "lfs"]
+	clean = git-lfs clean -- %f
+	smudge = git-lfs smudge -- %f
+	process = git-lfs filter-process
+	required = true

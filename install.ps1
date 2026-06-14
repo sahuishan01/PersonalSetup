@@ -96,6 +96,15 @@ try {
     }
 }
 
+# Setup Git Config
+Write-Info "Configuring global Git configuration include path..."
+try {
+    & git config --global include.path "$DotfilesDir\git\.gitconfig"
+    Write-Success "Git config include path registered."
+} catch {
+    Write-Warn "Failed to configure Git include path. Ensure Git is installed and available in environment paths."
+}
+
 # 6. Bootstrap Neovim Plugins and Tools
 Write-Info "Synchronizing Neovim plugins headlessly..."
 try {

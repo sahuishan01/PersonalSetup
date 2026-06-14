@@ -202,6 +202,11 @@ fi
 ln -sfT "$DOTFILES_DIR/nvim" "$HOME/.config/nvim"
 log_success "Neovim configs linked."
 
+# Setup Git Config
+log_info "Configuring global Git configuration include path..."
+git config --global include.path "$DOTFILES_DIR/git/.gitconfig"
+log_success "Git config include path registered."
+
 # Ensure PATH updates are present in shell configs (NVM loading, ~/.local/bin)
 if [ -f "$HOME/.bashrc" ]; then
     if ! grep -q "NVM_DIR" "$HOME/.bashrc" && [ "$PKG_MGR" != "termux" ]; then
