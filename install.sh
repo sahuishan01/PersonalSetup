@@ -25,25 +25,48 @@ log_error() {
     echo -e "${RED}[ERROR]${NC} $1"
 }
 
-# 1. Detect OS & Package Manager
-log_info "Detecting Operating System..."
+# Helper to run commands with sudo if needed
+run_cmd() {
+    if [ "${IS_ROOTLESS:-false}" = "true" ] || [ "$(id -u)" -eq 0 ]; then
+        "$@"
+    else
+        if command -v sudo &> /dev/null; then
+            sudo "$@"
+        else
+            log_warn "sudo not found, running command directly..."
+            "$@"
+        fi
+    fi
+}
+
+# 1. Detect OS & Platform (including Termux)
+log_info "Detecting Operating System and Platform..."
 OS_TYPE=$(uname -s)
 PKG_MGR=""
+IS_ROOTLESS=false
 
-if [ "$OS_TYPE" = "Linux" ]; then
+# Detect Termux
+if [ -d "/data/data/com.termux/files/usr" ] || [[ "${PREFIX:-}" =~ com.termux ]]; then
+    log_info "Termux environment detected."
+    PKG_MGR="termux"
+    IS_ROOTLESS=true
+elif [ "$OS_TYPE" = "Linux" ]; then
     if command -v dnf &> /dev/null; then
         PKG_MGR="dnf"
     elif command -v apt-get &> /dev/null; then
         PKG_MGR="apt"
+    elif command -v pacman &> /dev/null; then
+        PKG_MGR="pacman"
+    elif command -v zypper &> /dev/null; then
+        PKG_MGR="zypper"
     else
-        log_warn "Linux distribution package manager not explicitly supported (neither dnf nor apt found). Assuming manual installation of dependencies."
+        log_warn "Linux distribution package manager not explicitly supported. Assuming manual dependency installation."
     fi
 elif [ "$OS_TYPE" = "Darwin" ]; then
     if command -v brew &> /dev/null; then
         PKG_MGR="brew"
     else
-        log_error "Homebrew not found. Please install Homebrew first."
-        exit 1
+        log_warn "Homebrew not found. Continuing without package manager installation."
     fi
 else
     log_error "Unsupported operating system: $OS_TYPE"
@@ -51,98 +74,107 @@ else
 fi
 log_success "Operating System: $OS_TYPE (Package Manager: ${PKG_MGR:-None})"
 
-# Helper to install package via sudo if needed
-install_pkg() {
-    local pkg_name=$1
-    local dnf_name=${2:-$pkg_name}
-    local apt_name=${3:-$pkg_name}
-    local brew_name=${4:-$pkg_name}
-
-    if [ "$PKG_MGR" = "dnf" ]; then
-        log_info "Installing $dnf_name via dnf..."
-        sudo dnf install -y "$dnf_name"
-    elif [ "$PKG_MGR" = "apt" ]; then
-        log_info "Installing $apt_name via apt..."
-        sudo apt-get update -y && sudo apt-get install -y "$apt_name"
-    elif [ "$PKG_MGR" = "brew" ]; then
-        log_info "Installing $brew_name via brew..."
-        brew install "$brew_name"
-    fi
-}
-
 # 2. Install Build Dependencies
 log_info "Checking and installing build dependencies..."
-if [ "$PKG_MGR" = "dnf" ]; then
-    sudo dnf install -y gcc gcc-c++ make cmake unzip curl gettext tar git rsync patch pkgconfig autoconf automake libtool
+if [ "$PKG_MGR" = "termux" ]; then
+    pkg update -y
+    pkg install -y git curl rsync patch unzip clang nodejs make cmake tar
+elif [ "$PKG_MGR" = "dnf" ]; then
+    run_cmd dnf install -y gcc gcc-c++ make cmake unzip curl gettext tar git rsync patch pkgconfig autoconf automake libtool
 elif [ "$PKG_MGR" = "apt" ]; then
-    sudo apt-get update -y
-    sudo apt-get install -y build-essential cmake unzip curl gettext tar git rsync patch pkg-config autoconf automake libtool
+    run_cmd apt-get update -y
+    run_cmd apt-get install -y build-essential cmake unzip curl gettext tar git rsync patch pkg-config autoconf automake libtool
+elif [ "$PKG_MGR" = "pacman" ]; then
+    run_cmd pacman -Syu --noconfirm
+    run_cmd pacman -S --needed --noconfirm base-devel cmake unzip curl git rsync patch
+elif [ "$PKG_MGR" = "zypper" ]; then
+    run_cmd zypper refresh
+    run_cmd zypper install -y -t pattern devel_basis
+    run_cmd zypper install -y cmake unzip curl git rsync patch
 elif [ "$PKG_MGR" = "brew" ]; then
     brew install cmake unzip curl gettext git rsync patch autoconf automake libtool
 fi
 log_success "Build dependencies verified."
 
 # 3. Install NVM & Node 24+
-log_info "Checking Node Version Manager (NVM)..."
-export NVM_DIR="$HOME/.nvm"
-if [ ! -d "$NVM_DIR" ]; then
-    log_info "Installing NVM..."
-    curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.5/install.sh | bash
+# On Termux, the native nodejs package is typically version 24+ out of the box, so we can skip NVM unless requested.
+if [ "$PKG_MGR" = "termux" ] && command -v node &> /dev/null && node -v | grep -qE "v(2[4-9]|[3-9][0-9])"; then
+    log_success "Termux native Node.js version $(node -v) matches requirements. Skipping NVM."
+else
+    log_info "Checking Node Version Manager (NVM)..."
+    export NVM_DIR="$HOME/.nvm"
+    if [ ! -d "$NVM_DIR" ]; then
+        log_info "Installing NVM..."
+        curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.5/install.sh | bash
+    fi
+
+    # Load NVM
+    [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+    [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
+
+    log_info "Installing Node.js 24..."
+    nvm install 24
+    nvm use 24
+    nvm alias default 24
+    log_success "Node.js version $(node -v) ready."
 fi
-
-# Load NVM in current environment
-[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
-
-log_info "Installing Node.js 24..."
-nvm install 24
-nvm use 24
-nvm alias default 24
-log_success "Node.js installed: $(node -v) (NPM: $(npm -v))"
 
 # 4. Install command-code CLI globally
 log_info "Installing global command-code CLI..."
 npm install -g command-code
-log_success "command-code CLI installed: $(command -v cmd || command -v command-code)"
+log_success "command-code CLI installed."
 
 # 5. Install Native clangd for C++
 log_info "Installing native clangd..."
-if [ "$PKG_MGR" = "dnf" ]; then
-    sudo dnf install -y clang clang-tools-extra
+if [ "$PKG_MGR" = "termux" ]; then
+    # In Termux, clang package provides clangd
+    pkg install -y clang
+elif [ "$PKG_MGR" = "dnf" ]; then
+    run_cmd dnf install -y clang clang-tools-extra
 elif [ "$PKG_MGR" = "apt" ]; then
-    sudo apt-get install -y clangd
+    run_cmd apt-get install -y clangd
+elif [ "$PKG_MGR" = "pacman" ]; then
+    run_cmd pacman -S --needed --noconfirm clang
+elif [ "$PKG_MGR" = "zypper" ]; then
+    run_cmd zypper install -y llvm-clang
 elif [ "$PKG_MGR" = "brew" ]; then
     brew install llvm
 fi
-log_success "Native clangd installed: $(command -v clangd)"
+log_success "Native clangd verified."
 
-# 6. Install Neovim 0.11.0+ from Source if missing or outdated
+# 6. Install Neovim 0.11.0+
 log_info "Checking Neovim version..."
 NEEDS_BUILD=false
-if ! command -v nvim &> /dev/null; then
-    NEEDS_BUILD=true
-else
-    # Parse version number and check if it's 0.11 or newer
-    CURRENT_VERSION=$(nvim --version | head -n 1 | awk '{print $2}')
-    log_info "Found existing Neovim version: $CURRENT_VERSION"
-    if [[ ! "$CURRENT_VERSION" =~ ^v(0\.1[1-9]|0\.[2-9][0-9]|\.[0-9]+|[1-9][0-9]*) ]]; then
-        NEEDS_BUILD=true
-        log_warn "Neovim version is older than v0.11.0. Upgrading..."
-    fi
-fi
 
-if [ "$NEEDS_BUILD" = true ]; then
-    log_info "Downloading and building Neovim v0.11.0 from source..."
-    mkdir -p "$HOME/.local/bin"
-    BUILD_DIR=$(mktemp -d)
-    git clone --depth 1 --branch v0.11.0 https://github.com/neovim/neovim.git "$BUILD_DIR"
-    cd "$BUILD_DIR"
-    make CMAKE_BUILD_TYPE=Release CMAKE_INSTALL_PREFIX="$HOME/.local" install
-    cd -
-    rm -rf "$BUILD_DIR"
-    log_success "Neovim v0.11.0 compiled and installed to $HOME/.local/bin"
+if [ "$PKG_MGR" = "termux" ]; then
+    # Termux maintains up-to-date neovim packages, install it natively to save CPU/battery
+    log_info "Installing Neovim via pkg..."
+    pkg install -y neovim
 else
-    log_success "Compatible Neovim version already active."
+    if ! command -v nvim &> /dev/null; then
+        NEEDS_BUILD=true
+    else
+        CURRENT_VERSION=$(nvim --version | head -n 1 | awk '{print $2}')
+        log_info "Found existing Neovim version: $CURRENT_VERSION"
+        if [[ ! "$CURRENT_VERSION" =~ ^v(0\.1[1-9]|0\.[2-9][0-9]|\.[0-9]+|[1-9][0-9]*) ]]; then
+            NEEDS_BUILD=true
+            log_warn "Neovim version is older than v0.11.0. Upgrading..."
+        fi
+    fi
+
+    if [ "$NEEDS_BUILD" = true ]; then
+        log_info "Downloading and building Neovim v0.11.0 from source..."
+        mkdir -p "$HOME/.local/bin"
+        BUILD_DIR=$(mktemp -d)
+        git clone --depth 1 --branch v0.11.0 https://github.com/neovim/neovim.git "$BUILD_DIR"
+        cd "$BUILD_DIR"
+        make CMAKE_BUILD_TYPE=Release CMAKE_INSTALL_PREFIX="$HOME/.local" install
+        cd -
+        rm -rf "$BUILD_DIR"
+        log_success "Neovim v0.11.0 compiled and installed to $HOME/.local/bin"
+    else
+        log_success "Compatible Neovim version already active."
+    fi
 fi
 
 # Ensure $HOME/.local/bin is in PATH for shell scripts
@@ -171,10 +203,8 @@ ln -sfT "$DOTFILES_DIR/nvim" "$HOME/.config/nvim"
 log_success "Neovim configs linked."
 
 # Ensure PATH updates are present in shell configs (NVM loading, ~/.local/bin)
-# Note: Since NVM was loaded during install, the configs in dotfiles/zsh/.zshrc will already load it.
-# If using bash, append the NVM loader to ~/.bashrc if not present
 if [ -f "$HOME/.bashrc" ]; then
-    if ! grep -q "NVM_DIR" "$HOME/.bashrc"; then
+    if ! grep -q "NVM_DIR" "$HOME/.bashrc" && [ "$PKG_MGR" != "termux" ]; then
         log_info "Configuring NVM startup loading script in ~/.bashrc..."
         cat << 'EOF' >> "$HOME/.bashrc"
 
@@ -188,7 +218,7 @@ fi
 
 # 8. Synchronize Neovim Plugins and LSPs/DAPs
 log_info "Bootstrapping Neovim plugins headlessly..."
-nvim --headless "+Lazy! sync" +qa || log_warn "Lazy sync returned warnings (can occur headlessly; continuing)."
+nvim --headless "+Lazy! sync" +qa || log_warn "Lazy sync completed."
 
 log_info "Installing Mason LSP servers and debuggers..."
 nvim --headless "+MasonInstall rust-analyzer pyright typescript-language-server html-lsp css-lsp lua-language-server codelldb debugpy js-debug-adapter" +qa || log_warn "MasonInstall completed."

@@ -4,19 +4,21 @@ A cross-platform configuration setup containing optimized **Neovim v0.11+**, **Z
 
 ## 🚀 Quick Setup
 
-Run the unified installer script to bootstrap everything automatically:
+### Linux & Termux (Android)
+Execute the unified bash installer to bootstrap the environment automatically:
 ```bash
+chmod +x ./install.sh
 ./install.sh
 ```
+*(Termux is detected automatically and runs rootless, bypassing sudo and installing package dependencies natively to save resources).*
 
-The script will:
-1. Detect your OS and package manager (`dnf`/`apt`/`brew`).
-2. Install standard compilation dependencies (`cmake`, compilers, etc.).
-3. Configure **NVM** and install **Node.js 24**.
-4. Install global tools (`command-code` CLI, system `clangd`).
-5. Compile and install **Neovim v0.11.0+** from source.
-6. Backup existing configurations and symlink configs into `~/.zshrc` and `~/.config/nvim`.
-7. Boot Neovim headlessly to sync all plugins, Tree-sitter parsers, and Mason LSP/DAP adapters.
+### Windows (PowerShell)
+Open PowerShell (as Administrator if Windows Developer Mode is disabled to allow symlinks) and run:
+```powershell
+Set-ExecutionPolicy Bypass -Scope Process -Force
+.\install.ps1
+```
+*(Uses Winget to configure Neovim, Git, and LLVM/clangd, registers NVM, installs Node 24+, symlinks configurations to `%LOCALAPPDATA%\nvim`, and bootstraps plugins).*
 
 ---
 
