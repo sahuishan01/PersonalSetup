@@ -111,6 +111,7 @@ bindkey -s "\e[0;10;1c" ""
 
 # Added by Antigravity CLI installer
 export PATH="/home/opc/.local/bin:$PATH"
+export PATH="$HOME/.cargo/bin:$PATH"
 
 export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm

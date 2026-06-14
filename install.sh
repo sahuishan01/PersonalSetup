@@ -142,6 +142,50 @@ elif [ "$PKG_MGR" = "brew" ]; then
 fi
 log_success "Native clangd verified."
 
+# 5a. Install Rust compiler toolchain
+log_info "Checking Rust compiler (rustup)..."
+if [ "$PKG_MGR" = "termux" ]; then
+    pkg install -y rust
+else
+    if ! command -v rustc &> /dev/null; then
+        log_info "Installing Rust via rustup..."
+        curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+    fi
+fi
+
+# Load cargo environment
+export PATH="$HOME/.cargo/bin:$PATH"
+if [ -f "$HOME/.cargo/env" ]; then
+    \. "$HOME/.cargo/env"
+fi
+log_success "Rust compiler ready: $(rustc --version 2>/dev/null || echo 'cargo/rustup loaded')"
+
+# 5b. Install GitUI terminal interface
+log_info "Checking GitUI..."
+if ! command -v gitui &> /dev/null; then
+    log_info "Installing GitUI..."
+    if [ "$PKG_MGR" = "pacman" ]; then
+        run_cmd pacman -S --needed --noconfirm gitui
+    elif [ "$PKG_MGR" = "zypper" ]; then
+        run_cmd zypper install -y gitui
+    elif [ "$PKG_MGR" = "brew" ]; then
+        brew install gitui
+    elif [ "$PKG_MGR" = "termux" ]; then
+        pkg install -y gitui
+    else
+        # For dnf / apt, try package manager, fallback to cargo compile
+        if [ "$PKG_MGR" = "dnf" ] && run_cmd dnf list gitui &> /dev/null; then
+            run_cmd dnf install -y gitui
+        elif [ "$PKG_MGR" = "apt" ] && run_cmd apt-cache show gitui &> /dev/null; then
+            run_cmd apt-get install -y gitui
+        else
+            log_info "Building GitUI via Cargo (this may take a few minutes)..."
+            cargo install gitui --locked
+        fi
+    fi
+fi
+log_success "GitUI installed: $(command -v gitui)"
+
 # 6. Install Neovim 0.11.0+
 log_info "Checking Neovim version..."
 NEEDS_BUILD=false
@@ -218,6 +262,10 @@ export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
 [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
 EOF
+    fi
+    if ! grep -q "cargo/bin" "$HOME/.bashrc"; then
+        log_info "Configuring Cargo path in ~/.bashrc..."
+        echo 'export PATH="$HOME/.cargo/bin:$PATH"' >> "$HOME/.bashrc"
     fi
 fi
 

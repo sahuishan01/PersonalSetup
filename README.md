@@ -1,6 +1,6 @@
 # Dotfiles Configuration
 
-A cross-platform configuration setup containing optimized **Neovim v0.11+**, **Zsh** shell settings, **Node.js 24+**, and debugging tools (`DAP`) for C++, Rust, Python, and React.
+A cross-platform configuration setup containing optimized **Neovim v0.11+**, **Zsh** shell settings, **Node.js 24+**, **Rust compiler toolchain**, **GitUI terminal interface**, and debugging tools (`DAP`) for C++, Rust, Python, and React.
 
 ## 🚀 Quick Setup
 
@@ -18,7 +18,7 @@ Open PowerShell (as Administrator if Windows Developer Mode is disabled to allow
 Set-ExecutionPolicy Bypass -Scope Process -Force
 .\install.ps1
 ```
-*(Uses Winget to configure Neovim, Git, and LLVM/clangd, registers NVM, installs Node 24+, symlinks configurations to `%LOCALAPPDATA%\nvim`, and bootstraps plugins).*
+*(Uses Winget to configure Neovim, Git, LLVM/clangd, Rust, and GitUI, registers NVM, installs Node 24+, symlinks configurations to `%LOCALAPPDATA%\nvim`, and bootstraps plugins).*
 
 ---
 

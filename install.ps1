@@ -31,8 +31,10 @@ try {
     Ensure-Command "git" "Git.Git"
     Ensure-Command "nvim" "Neovim.Neovim"
     Ensure-Command "clangd" "LLVM.LLVM"
+    Ensure-Command "rustc" "Rustlang.Rustup"
+    Ensure-Command "gitui" "StephanDilly.gitui"
 } catch {
-    Write-Warn "Winget auto-install failed or skipped. Please verify Git, Neovim, and LLVM (clangd) are installed manually."
+    Write-Warn "Winget auto-install failed or skipped. Please verify Git, Neovim, LLVM, Rust, and GitUI are installed manually."
 }
 
 # 3. Verify Node.js 24+
