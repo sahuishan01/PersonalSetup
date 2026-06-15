@@ -246,6 +246,25 @@ if [ "$SHELL" != "$(which zsh)" ]; then
     log_success "Default shell changed to Zsh."
 fi
 
+# Install Oh My Zsh if not present
+if [ ! -d "$HOME/.oh-my-zsh" ]; then
+    log_info "Installing Oh My Zsh..."
+    sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended 2>/dev/null || true
+    # Re-link .zshrc (Oh My Zsh installer overwrites it)
+    ln -sf "$DOTFILES_DIR/zsh/.zshrc" "$HOME/.zshrc"
+    log_success "Oh My Zsh installed."
+fi
+
+# Install Oh My Zsh custom plugins
+log_info "Installing Zsh custom plugins..."
+if [ ! -d "$HOME/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting" ]; then
+    git clone https://github.com/zsh-users/zsh-syntax-highlighting.git "$HOME/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting" 2>/dev/null
+fi
+if [ ! -d "$HOME/.oh-my-zsh/custom/plugins/zsh-autosuggestions" ]; then
+    git clone https://github.com/zsh-users/zsh-autosuggestions.git "$HOME/.oh-my-zsh/custom/plugins/zsh-autosuggestions" 2>/dev/null
+fi
+log_success "Zsh custom plugins ready."
+
 # Setup Neovim Config
 log_info "Configuring ~/.config/nvim..."
 mkdir -p "$HOME/.config"
