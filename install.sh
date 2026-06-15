@@ -236,6 +236,16 @@ fi
 ln -sf "$DOTFILES_DIR/zsh/.zshrc" "$HOME/.zshrc"
 log_success "Zsh config linked."
 
+# Change default shell to Zsh if not already
+if [ "$SHELL" != "$(which zsh)" ]; then
+    if ! grep -q "$(which zsh)" /etc/shells 2>/dev/null; then
+        command -v zsh >> /etc/shells 2>/dev/null || true
+    fi
+    log_info "Changing default shell to Zsh..."
+    chsh -s "$(which zsh)" || log_warn "Could not change shell. Run manually: chsh -s $(which zsh)"
+    log_success "Default shell changed to Zsh."
+fi
+
 # Setup Neovim Config
 log_info "Configuring ~/.config/nvim..."
 mkdir -p "$HOME/.config"
