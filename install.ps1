@@ -8,6 +8,19 @@ function Write-Success($msg) { Write-Host "[SUCCESS] $msg" -ForegroundColor Gree
 function Write-Warn($msg) { Write-Host "[WARN] $msg" -ForegroundColor Yellow }
 function Write-ErrorLog($msg) { Write-Host "[ERROR] $msg" -ForegroundColor Red }
 
+function Refresh-Path {
+    $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "User")
+}
+
+function Add-UserPath($path) {
+    $userPath = [System.Environment]::GetEnvironmentVariable("Path", "User")
+    $entries = @($userPath -split ';' | Where-Object { $_ })
+    if ($entries -notcontains $path) {
+        [System.Environment]::SetEnvironmentVariable("Path", (($entries + $path) -join ';'), "User")
+    }
+    Refresh-Path
+}
+
 # 1. Self-Execution Check & Path Setup
 $DotfilesDir = $PSScriptRoot
 Write-Info "Executing setup from: $DotfilesDir"
@@ -19,9 +32,8 @@ Write-Info "Verifying development dependencies..."
 function Ensure-Command($commandName, $wingetId) {
     if (-not (Get-Command $commandName -ErrorAction SilentlyContinue)) {
         Write-Info "Installing $commandName using winget..."
-        & winget install --exact --id $wingetId --silent --accept-package-agreements --accept-source-agreements
-        # Refresh env path
-        $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "User")
+        & winget install --exact --id $wingetId --silent --disable-interactivity --accept-package-agreements --accept-source-agreements
+        Refresh-Path
     } else {
         Write-Success "$commandName is already installed."
     }
@@ -33,8 +45,24 @@ try {
     Ensure-Command "clangd" "LLVM.LLVM"
     Ensure-Command "rustc" "Rustlang.Rustup"
     Ensure-Command "gitui" "StephanDilly.gitui"
+    Ensure-Command "uv" "astral-sh.uv"
 } catch {
     Write-Warn "Winget auto-install failed or skipped. Please verify Git, Neovim, LLVM, Rust, and GitUI are installed manually."
+}
+
+# Add common installer locations that do not always update PATH immediately.
+Add-UserPath "C:\Program Files\LLVM\bin"
+Add-UserPath "C:\Program Files\Neovim\bin"
+Add-UserPath "$env:USERPROFILE\.local\bin"
+
+# Use uv for Python so the runtime and packages are isolated from system Python.
+Write-Info "Installing managed Python through uv..."
+try {
+    & uv python install 3.13 --default
+    Refresh-Path
+    Write-Success "uv-managed Python is ready: $(python --version)"
+} catch {
+    Write-Warn "uv Python setup failed. Python-dependent debugging tools may be unavailable."
 }
 
 # 3. Verify Node.js 24+
@@ -52,8 +80,8 @@ if (Get-Command "node" -ErrorAction SilentlyContinue) {
 if (-not $NodeInstalled) {
     Write-Info "Installing Node.js LTS via winget..."
     try {
-        & winget install --exact --id "OpenJS.NodeJS.LTS" --silent --accept-package-agreements --accept-source-agreements
-        $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "User")
+        & winget install --exact --id "OpenJS.NodeJS.LTS" --silent --disable-interactivity --accept-package-agreements --accept-source-agreements
+        Refresh-Path
         Write-Success "Node.js LTS installed. Version: $(node -v)"
     } catch {
         Write-ErrorLog "Failed to install Node.js. Please download and install Node.js 24+ manually."

@@ -96,7 +96,23 @@ elif [ "$PKG_MGR" = "brew" ]; then
 fi
 log_success "Build dependencies verified."
 
-# 3. Install NVM & Node 24+
+# 3. Install uv and a managed Python runtime
+log_info "Checking uv Python package manager..."
+if ! command -v uv &> /dev/null; then
+    log_info "Installing uv..."
+    if [ "$PKG_MGR" = "brew" ]; then
+        brew install uv
+    else
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+    fi
+    export PATH="$HOME/.local/bin:$PATH"
+fi
+
+uv python install 3.13 --default
+export PATH="$HOME/.local/bin:$PATH"
+log_success "uv-managed Python ready: $(python --version 2>/dev/null || uv run --python 3.13 python --version)"
+
+# 4. Install NVM & Node 24+
 # On Termux, the native nodejs package is typically version 24+ out of the box, so we can skip NVM unless requested.
 if [ "$PKG_MGR" = "termux" ] && command -v node &> /dev/null && node -v | grep -qE "v(2[4-9]|[3-9][0-9])"; then
     log_success "Termux native Node.js version $(node -v) matches requirements. Skipping NVM."
@@ -119,12 +135,12 @@ else
     log_success "Node.js version $(node -v) ready."
 fi
 
-# 4. Install command-code CLI globally
+# 5. Install command-code CLI globally
 log_info "Installing global command-code CLI..."
 npm install -g command-code
 log_success "command-code CLI installed."
 
-# 5. Install Native clangd for C++
+# 6. Install Native clangd for C++
 log_info "Installing native clangd..."
 if [ "$PKG_MGR" = "termux" ]; then
     # In Termux, clang package provides clangd
@@ -142,7 +158,7 @@ elif [ "$PKG_MGR" = "brew" ]; then
 fi
 log_success "Native clangd verified."
 
-# 5a. Install Rust compiler toolchain
+# 6a. Install Rust compiler toolchain
 log_info "Checking Rust compiler (rustup)..."
 if [ "$PKG_MGR" = "termux" ]; then
     pkg install -y rust
@@ -160,7 +176,7 @@ if [ -f "$HOME/.cargo/env" ]; then
 fi
 log_success "Rust compiler ready: $(rustc --version 2>/dev/null || echo 'cargo/rustup loaded')"
 
-# 5b. Install GitUI terminal interface
+# 6b. Install GitUI terminal interface
 log_info "Checking GitUI..."
 if ! command -v gitui &> /dev/null; then
     log_info "Installing GitUI..."
@@ -186,7 +202,7 @@ if ! command -v gitui &> /dev/null; then
 fi
 log_success "GitUI installed: $(command -v gitui)"
 
-# 6. Install Neovim 0.11.0+
+# 7. Install Neovim 0.11.0+
 log_info "Checking Neovim version..."
 NEEDS_BUILD=false
 
@@ -224,7 +240,7 @@ fi
 # Ensure $HOME/.local/bin is in PATH for shell scripts
 export PATH="$HOME/.local/bin:$PATH"
 
-# 7. Configure Symlinks (Safe backup)
+# 8. Configure Symlinks (Safe backup)
 DOTFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Setup Zsh
@@ -305,7 +321,7 @@ EOF
     fi
 fi
 
-# 8. Synchronize Neovim Plugins and LSPs/DAPs
+# 9. Synchronize Neovim Plugins and LSPs/DAPs
 log_info "Bootstrapping Neovim plugins headlessly..."
 nvim --headless "+Lazy! sync" +qa || log_warn "Lazy sync completed."
 
