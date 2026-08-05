@@ -78,21 +78,21 @@ log_success "Operating System: $OS_TYPE (Package Manager: ${PKG_MGR:-None})"
 log_info "Checking and installing build dependencies..."
 if [ "$PKG_MGR" = "termux" ]; then
     pkg update -y
-    pkg install -y git curl rsync patch unzip clang nodejs make cmake tar
+    pkg install -y git curl rsync patch unzip clang nodejs make cmake tar openssl
 elif [ "$PKG_MGR" = "dnf" ]; then
-    run_cmd dnf install -y gcc gcc-c++ make cmake unzip curl gettext tar git rsync patch pkgconfig autoconf automake libtool
+    run_cmd dnf install -y gcc gcc-c++ make cmake unzip curl gettext tar git rsync patch pkgconfig autoconf automake libtool openssl-devel
 elif [ "$PKG_MGR" = "apt" ]; then
     run_cmd apt-get update -y
-    run_cmd apt-get install -y build-essential cmake unzip curl gettext tar git rsync patch pkg-config autoconf automake libtool
+    run_cmd apt-get install -y build-essential cmake unzip curl gettext tar git rsync patch pkg-config autoconf automake libtool libssl-dev
 elif [ "$PKG_MGR" = "pacman" ]; then
     run_cmd pacman -Syu --noconfirm
-    run_cmd pacman -S --needed --noconfirm base-devel cmake unzip curl git rsync patch
+    run_cmd pacman -S --needed --noconfirm base-devel cmake unzip curl git rsync patch openssl
 elif [ "$PKG_MGR" = "zypper" ]; then
     run_cmd zypper refresh
     run_cmd zypper install -y -t pattern devel_basis
-    run_cmd zypper install -y cmake unzip curl git rsync patch
+    run_cmd zypper install -y cmake unzip curl git rsync patch libopenssl-devel
 elif [ "$PKG_MGR" = "brew" ]; then
-    brew install cmake unzip curl gettext git rsync patch autoconf automake libtool
+    brew install cmake unzip curl gettext git rsync patch autoconf automake libtool openssl
 fi
 log_success "Build dependencies verified."
 
@@ -180,7 +180,7 @@ if ! command -v gitui &> /dev/null; then
             run_cmd apt-get install -y gitui
         else
             log_info "Building GitUI via Cargo (this may take a few minutes)..."
-            cargo install gitui --locked
+            OPENSSL_NO_VENDOR=1 cargo install gitui --locked
         fi
     fi
 fi
@@ -274,6 +274,13 @@ if [ -d "$HOME/.config/nvim" ] && [ ! -L "$HOME/.config/nvim" ]; then
 fi
 ln -sfT "$DOTFILES_DIR/nvim" "$HOME/.config/nvim"
 log_success "Neovim configs linked."
+
+# Setup shared AI agent developer profile (Claude Code, Gemini CLI, opencode, Hermes)
+if [ -x "$DOTFILES_DIR/agent-profile/sync-agents.sh" ]; then
+    log_info "Linking shared agent developer profile..."
+    bash "$DOTFILES_DIR/agent-profile/sync-agents.sh"
+    log_success "Agent profile linked."
+fi
 
 # Setup Git Config
 log_info "Configuring global Git configuration include path..."

@@ -1,0 +1,4 @@
+agent-profile/
+.env
+*.pem
+*.key
