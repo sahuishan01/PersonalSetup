@@ -96,6 +96,15 @@ elif [ "$PKG_MGR" = "brew" ]; then
 fi
 log_success "Build dependencies verified."
 
+# Install WezTerm where the platform package manager provides it.
+if ! command -v wezterm &> /dev/null; then
+    if [ "$PKG_MGR" = "brew" ]; then
+        brew install --cask wezterm
+    elif [ "$PKG_MGR" = "apt" ]; then
+        run_cmd apt-get install -y wezterm || log_warn "WezTerm is unavailable from the configured apt sources."
+    fi
+fi
+
 # 3. Install uv and a managed Python runtime
 log_info "Checking uv Python package manager..."
 if ! command -v uv &> /dev/null; then
@@ -242,6 +251,13 @@ export PATH="$HOME/.local/bin:$PATH"
 
 # 8. Configure Symlinks (Safe backup)
 DOTFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Setup WezTerm config.
+if [ -f "$HOME/.wezterm.lua" ] && [ ! -L "$HOME/.wezterm.lua" ]; then
+    mv "$HOME/.wezterm.lua" "$HOME/.wezterm.lua.bak"
+fi
+ln -sf "$DOTFILES_DIR/wezterm/.wezterm.lua" "$HOME/.wezterm.lua"
+log_success "WezTerm config linked."
 
 # Setup Zsh
 log_info "Configuring ~/.zshrc..."

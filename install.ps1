@@ -46,6 +46,7 @@ try {
     Ensure-Command "rustc" "Rustlang.Rustup"
     Ensure-Command "gitui" "StephanDilly.gitui"
     Ensure-Command "uv" "astral-sh.uv"
+    Ensure-Command "wezterm" "wez.wezterm"
 } catch {
     Write-Warn "Winget auto-install failed or skipped. Please verify Git, Neovim, LLVM, Rust, and GitUI are installed manually."
 }
@@ -54,6 +55,15 @@ try {
 Add-UserPath "C:\Program Files\LLVM\bin"
 Add-UserPath "C:\Program Files\Neovim\bin"
 Add-UserPath "$env:USERPROFILE\.local\bin"
+
+# Link WezTerm configuration.
+$WezTermConfig = "$env:USERPROFILE\.wezterm.lua"
+$TargetWezTermConfig = "$DotfilesDir\wezterm\.wezterm.lua"
+if (Test-Path $WezTermConfig) {
+    Copy-Item $WezTermConfig "$WezTermConfig.bak" -Force
+}
+Copy-Item $TargetWezTermConfig $WezTermConfig -Force
+Write-Success "WezTerm config installed at $WezTermConfig"
 
 # Use uv for Python so the runtime and packages are isolated from system Python.
 Write-Info "Installing managed Python through uv..."
