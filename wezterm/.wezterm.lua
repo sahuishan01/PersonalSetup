@@ -9,7 +9,7 @@ config.font_size = 10.0
 config.window_background_opacity = 0.85
 config.win32_system_backdrop = 'Tabbed'
 config.window_padding = { left = 12, right = 12, top = 12, bottom = 12 }
-config.window_decorations = 'RESIZE'
+config.window_decorations = 'TITLE | RESIZE'
 
 if wezterm.target_triple:find('windows') then
     config.default_prog = { 'pwsh.exe', '-NoLogo' }
