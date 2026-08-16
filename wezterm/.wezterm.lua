@@ -31,6 +31,11 @@ config.keys = {
 
 config.mouse_bindings = {
     {
+        event = { Up = { streak = 1, button = 'Left' } },
+        mods = 'NONE',
+        action = wezterm.action.CompleteSelection 'Clipboard',
+    },
+    {
         event = { Down = { streak = 1, button = 'Right' } },
         mods = 'NONE',
         action = wezterm.action.PasteFrom 'Clipboard',
