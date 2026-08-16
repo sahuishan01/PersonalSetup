@@ -252,6 +252,26 @@ export PATH="$HOME/.local/bin:$PATH"
 # 8. Configure Symlinks (Safe backup)
 DOTFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+# Install JetBrainsMono Nerd Font
+log_info "Installing JetBrainsMono Nerd Font..."
+if [ "$PKG_MGR" = "brew" ]; then
+    brew install --cask font-jetbrains-mono-nerd-font || true
+elif [ "$PKG_MGR" = "termux" ]; then
+    mkdir -p "$HOME/.termux"
+    curl -fsSL -o "$HOME/.termux/font.ttf" "https://github.com/ryanoasis/nerd-fonts/raw/HEAD/patched-fonts/JetBrainsMono/NoLigatures/Regular/JetBrainsMonoNerdFontMono-Regular.ttf" || true
+    termux-reload-settings 2>/dev/null || true
+else
+    FONT_DIR="$HOME/.local/share/fonts"
+    mkdir -p "$FONT_DIR"
+    if ! ls "$FONT_DIR"/JetBrainsMono*Nerd* &>/dev/null; then
+        curl -fsSL -o /tmp/JetBrainsMono.zip "https://github.com/ryanoasis/nerd-fonts/releases/latest/download/JetBrainsMono.zip" && \
+        unzip -o /tmp/JetBrainsMono.zip -d "$FONT_DIR" && \
+        rm -f /tmp/JetBrainsMono.zip && \
+        command -v fc-cache &>/dev/null && fc-cache -f "$FONT_DIR" || true
+    fi
+fi
+log_success "JetBrainsMono Nerd Font verified."
+
 # Setup WezTerm config.
 if [ -f "$HOME/.wezterm.lua" ] && [ ! -L "$HOME/.wezterm.lua" ]; then
     mv "$HOME/.wezterm.lua" "$HOME/.wezterm.lua.bak"
