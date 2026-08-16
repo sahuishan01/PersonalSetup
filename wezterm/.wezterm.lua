@@ -18,6 +18,10 @@ end
 config.enable_tab_bar = true
 config.hide_tab_bar_if_only_one_tab = false
 config.use_fancy_tab_bar = true
+config.tab_max_width = 16
+config.window_frame = {
+    font_size = 9.0,
+}
 
 config.leader = { key = 'a', mods = 'CTRL', timeout_milliseconds = 1000 }
 config.keys = {
