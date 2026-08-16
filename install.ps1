@@ -47,6 +47,8 @@ try {
     Ensure-Command "gitui" "StephanDilly.gitui"
     Ensure-Command "uv" "astral-sh.uv"
     Ensure-Command "wezterm" "wez.wezterm"
+    Write-Info "Installing JetBrainsMono Nerd Font via winget..."
+    & winget install --exact --id "DEVCOM.JetBrainsMonoNerdFont" --accept-package-agreements --accept-source-agreements
 } catch {
     Write-Warn "Winget auto-install failed or skipped. Please verify Git, Neovim, LLVM, Rust, and GitUI are installed manually."
 }

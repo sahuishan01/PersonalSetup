@@ -3,7 +3,7 @@ local wezterm = require 'wezterm'
 local config = wezterm.config_builder()
 
 config.color_scheme = 'Tokyo Night'
-config.font = wezterm.font('JetBrains Mono', { weight = 'Regular', italic = false })
+config.font = wezterm.font('JetBrainsMono Nerd Font', { weight = 'Regular', italic = false })
 config.font_size = 10.0
 
 config.window_background_opacity = 0.85
