@@ -23,6 +23,21 @@ config.window_frame = {
     font_size = 9.0,
 }
 
+wezterm.on('format-tab-title', function(tab, tabs, panes, config, hover, max_width)
+    local title = tab.active_pane.title
+    if title and #title > 0 then
+        -- Extract just the process or directory name (basename)
+        title = title:gsub('^.*[/\\]', '')
+    else
+        title = 'pwsh'
+    end
+    -- Limit title length to 12 chars
+    if #title > 12 then
+        title = title:sub(1, 10) .. '..'
+    end
+    return string.format(' %d: %s ', tab.tab_index + 1, title)
+end)
+
 config.leader = { key = 'a', mods = 'CTRL', timeout_milliseconds = 1000 }
 config.keys = {
     { key = '|', mods = 'LEADER|SHIFT', action = wezterm.action.SplitHorizontal { domain = 'CurrentPaneDomain' } },
